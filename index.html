@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Intercom — Radio Monaco</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Share+Tech+Mono&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 :root {
   --red:#E4032E; --bg:#0D1016; --panel:#12151C; --card:#181B26;
@@ -383,7 +383,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
         <div class="vu-wrap" id="vu-local"></div>
       </div>
 
-      <button class="dc-btn" onclick="disconnect()">&#9632; Raccrocher</button>
+      <button class="dc-btn" onclick="hangUp()">&#9632; Raccrocher</button>
     </div>
 
     <!-- Log connecté -->
@@ -751,7 +751,7 @@ function renderParticipants() {
 }
 
 // ── Déconnexion ───────────────────────────────────────────────────────────
-function disconnect() {
+function hangUp() {
   pttEnd();
   if (call) { try { call.close(); } catch(e){} call = null; }
   if (conn) { try { conn.close(); } catch(e){} conn = null; }
@@ -787,6 +787,15 @@ function copyCode() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
+// Exposer les fonctions sur window pour les onclick inline
+window.createRoom   = createRoom;
+window.joinRoom     = joinRoom;
+window.hangUp       = hangUp;
+window.copyCode     = copyCode;
+window.pttStart     = pttStart;
+window.pttEnd       = pttEnd;
+window.otFiles      = window.otFiles || function(){};
+
 log('Prêt — Entrez votre nom et créez ou rejoignez une room');
 </script>
 </body>
