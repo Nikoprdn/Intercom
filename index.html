@@ -161,9 +161,31 @@ async function getPeerConfig(){
   try{
     var r=await fetch(TURN_URL,{signal:AbortSignal.timeout(6000)});
     var d=await r.json();
-    if(d.iceServers){log('TURN Cloudflare OK','ok');return{host:'0.peerjs.com',port:443,secure:true,config:{iceTransportPolicy:'all',iceServers:d.iceServers}};}
-  }catch(e){log('TURN indisponible, fallback STUN','err');}
-  return{host:'0.peerjs.com',port:443,secure:true,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}};
+    console.log('[TURN] Raw:', JSON.stringify(d).slice(0,400));
+    // Cloudflare Calls renvoie { iceServers: [...] }
+    // Chaque entrée a { urls: "turn:...", username: "...", credential: "..." }
+    var ice=null;
+    if(Array.isArray(d.iceServers)) ice=d.iceServers;
+    else if(d.v && Array.isArray(d.v.iceServers)) ice=d.v.iceServers;
+    // Convertir urls string → tableau si nécessaire (PeerJS l'exige)
+    if(ice){
+      ice=ice.map(function(s){
+        return{
+          urls: Array.isArray(s.urls)?s.urls:[s.urls],
+          username: s.username||undefined,
+          credential: s.credential||undefined
+        };
+      });
+      log('TURN OK — '+ice.length+' serveur(s)','ok');
+      return{host:'0.peerjs.com',port:443,secure:true,config:{iceTransportPolicy:'all',iceServers:ice}};
+    }
+    log('TURN: réponse vide','err');
+  }catch(e){log('TURN erreur: '+e.message,'err');}
+  log('Fallback STUN','err');
+  return{host:'0.peerjs.com',port:443,secure:true,config:{iceServers:[
+    {urls:['stun:stun.l.google.com:19302']},
+    {urls:['stun:stun1.l.google.com:19302']}
+  ]}};
 }
 async function initPeer(peerId){
   setStatus('CONNEXION…','wait');
