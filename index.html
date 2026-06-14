@@ -475,38 +475,34 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────
-// ── URL du Worker Cloudflare qui génère les credentials TURN ─────────────
-// Remplacez par l'URL de votre Worker après déploiement
+// ── Configuration TURN Cloudflare ────────────────────────────────────────
 var TURN_WORKER_URL = 'https://intercom-turn.nicolas7lejeune.workers.dev/';
 
-var PEER_CONFIG = null; // Sera initialisé après récupération des credentials
-
-// Config de fallback si le Worker échoue
-var PEER_CONFIG_FALLBACK = {
-  host: '0.peerjs.com', port: 443, secure: true,
-  config: {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-    ]
-  }
-};
+var PEER_CONFIG = null;
 
 async function getTurnCredentials() {
   try {
-    log('Récupération des credentials TURN…');
-    var resp = await fetch(TURN_WORKER_URL, { signal: AbortSignal.timeout(5000) });
+    log('Récupération credentials TURN Cloudflare…');
+    var resp = await fetch(TURN_WORKER_URL, { signal: AbortSignal.timeout(6000) });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     var data = await resp.json();
     if (!data.iceServers) throw new Error('Pas de iceServers');
-    log('Credentials TURN obtenus ✓', 'ok');
+    log('TURN Cloudflare OK ✓', 'ok');
     return {
       host: '0.peerjs.com', port: 443, secure: true,
       config: { iceTransportPolicy: 'all', iceServers: data.iceServers }
     };
   } catch(e) {
-    log('TURN Worker indisponible, fallback STUN uniquement', 'err');
-    return PEER_CONFIG_FALLBACK;
+    log('TURN indisponible, fallback STUN…', 'err');
+    return {
+      host: '0.peerjs.com', port: 443, secure: true,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+        ]
+      }
+    };
   }
 }
 
