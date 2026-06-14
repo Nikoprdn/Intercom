@@ -141,6 +141,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
   background:var(--card);border:1px solid var(--border);border-radius:14px;
   padding:20px;display:flex;flex-direction:column;gap:16px;
   animation:fadeIn .3s ease;
+  transition:background .2s,border-color .2s,box-shadow .2s;
+}
+.connected-card.receiving{
+  background:rgba(228,3,46,.08);
+  border-color:var(--red);
+  box-shadow:0 0 0 3px rgba(228,3,46,.15),0 0 32px rgba(228,3,46,.12);
+}
+.connected-card.emitting{
+  background:rgba(39,174,96,.08);
+  border-color:var(--green);
+  box-shadow:0 0 0 3px rgba(39,174,96,.15),0 0 32px rgba(39,174,96,.12);
 }
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
@@ -335,6 +346,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 
     <!-- Pair connecté -->
     <div class="connected-card">
+      <!-- Compteur participants -->
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 16px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="hdr-dot online"></div>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text);" id="participants-count">2 participants</span>
+        </div>
+        <div id="participants-list" style="display:flex;gap:6px;"></div>
+      </div>
+
       <div class="peer-info">
         <div class="peer-avatar" id="peer-avatar">?</div>
         <div>
@@ -663,6 +683,9 @@ function pttStart(e) {
   document.getElementById('ptt-hint').style.color = 'var(--green)';
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   conn.send({ type: 'ptt_start' });
+  // Card verte : on émet
+  var card = document.querySelector('.connected-card');
+  if (card) { card.classList.remove('receiving'); card.classList.add('emitting'); }
 }
 
 function pttEnd(e) {
@@ -674,6 +697,9 @@ function pttEnd(e) {
   document.getElementById('ptt-hint').textContent = 'Maintenez pour parler';
   document.getElementById('ptt-hint').style.color = '';
   if (conn && conn.open) conn.send({ type: 'ptt_end' });
+  // Retirer état émission
+  var card = document.querySelector('.connected-card');
+  if (card) card.classList.remove('emitting');
 }
 
 // ── Peer speaking indicator ───────────────────────────────────────────────
@@ -682,6 +708,12 @@ function setPeerSpeaking(speaking) {
   var state = document.getElementById('peer-state');
   if (avatar) avatar.className = 'peer-avatar' + (speaking ? ' speaking' : '');
   if (state) { state.textContent = speaking ? 'PARLE…' : 'CONNECTÉ'; state.className = 'peer-state' + (speaking ? ' speaking' : ''); }
+  // Card rouge : on reçoit
+  var card = document.querySelector('.connected-card');
+  if (card) {
+    if (speaking) { card.classList.remove('emitting'); card.classList.add('receiving'); }
+    else { card.classList.remove('receiving'); }
+  }
 }
 
 // ── Afficher la section connectée ─────────────────────────────────────────
@@ -693,6 +725,29 @@ function showConnected() {
   document.getElementById('peer-avatar').textContent = peerName.charAt(0);
   setStatus('CONNECTÉ — ' + peerName, 'online');
   log('Intercom actif avec ' + peerName, 'ok', 'log-conn');
+  renderParticipants();
+}
+
+function renderParticipants() {
+  var count = document.getElementById('participants-count');
+  var list  = document.getElementById('participants-list');
+  if (!count || !list) return;
+  var participants = [
+    { name: myName,   self: true },
+    { name: peerName, self: false }
+  ];
+  count.textContent = participants.length + ' participant' + (participants.length > 1 ? 's' : '');
+  list.innerHTML = participants.map(function(p) {
+    return '<div style="'
+      + 'background:' + (p.self ? 'rgba(39,174,96,.15)' : 'rgba(228,3,46,.15)') + ';'
+      + 'border:1px solid ' + (p.self ? 'var(--green)' : 'var(--red)') + ';'
+      + 'color:' + (p.self ? 'var(--green)' : 'var(--red)') + ';'
+      + 'font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;'
+      + 'letter-spacing:.1em;text-transform:uppercase;'
+      + 'padding:3px 10px;border-radius:20px;white-space:nowrap;">'
+      + p.name + (p.self ? ' (moi)' : '')
+      + '</div>';
+  }).join('');
 }
 
 // ── Déconnexion ───────────────────────────────────────────────────────────
