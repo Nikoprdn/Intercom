@@ -589,11 +589,18 @@ async function initPeer(peerId) {
     } else {
       call = c;
       log('Appel audio entrant…', 'ok');
-      getMic(function(stream) {
-        localStream = stream;
-        call.answer(stream);
+      if (localStream) {
+        // Micro déjà prêt, répondre directement
+        call.answer(localStream);
         setupCall(call);
-      });
+      } else {
+        // Sinon capturer maintenant
+        getMic(function(stream) {
+          localStream = stream;
+          call.answer(stream);
+          setupCall(call);
+        });
+      }
     }
   });
 
@@ -657,12 +664,22 @@ function setupDataConn(c) {
     // Envoyer notre nom
     c.send({ type: 'hello', name: myName });
 
-    // Côté client : initier l'appel audio immédiatement
+    // Côté client : initier l'appel audio après un court délai
+    // (laisser le temps à l'hôte de s'initialiser)
     if (!isHost) {
+      setTimeout(function() {
+        getMic(function(stream) {
+          localStream = stream;
+          log('Appel audio en cours…', 'ok');
+          call = peer.call(c.peer, stream);
+          setupCall(call);
+        });
+      }, 500);
+    } else {
+      // Hôte : préparer le micro en avance
       getMic(function(stream) {
         localStream = stream;
-        call = peer.call(c.peer, stream);
-        setupCall(call);
+        log('Micro hôte prêt', 'ok');
       });
     }
 
@@ -722,10 +739,25 @@ function setupDataConn(c) {
 // ── MediaConnection ───────────────────────────────────────────────────────
 function setupCall(c) {
   c.on('stream', function(remoteStream) {
-    log('Audio reçu', 'ok');
+    log('Audio reçu ✓', 'ok');
     var audio = document.getElementById('remote-audio');
     audio.srcObject = remoteStream;
-    audio.play().catch(function(){});
+    // Force play avec interaction utilisateur simulée
+    var playPromise = audio.play();
+    if (playPromise) {
+      playPromise.catch(function(e) {
+        log('Audio bloqué par le navigateur — tapez l'écran', 'err');
+        // Réessayer au prochain tap
+        document.addEventListener('touchstart', function retry() {
+          audio.play();
+          document.removeEventListener('touchstart', retry);
+        }, { once: true });
+        document.addEventListener('click', function retry2() {
+          audio.play();
+          document.removeEventListener('click', retry2);
+        }, { once: true });
+      });
+    }
     setupRemoteVU(remoteStream);
   });
   c.on('close', function() { log('Appel terminé', 'err'); });
@@ -816,7 +848,21 @@ function pttStart(e) {
   if (!conn || !conn.open) return;
   if (pttActive) return;
   pttActive = true;
-  muteStream(localStream, false);
+  if (localStream) {
+    muteStream(localStream, false);
+  } else {
+    getMic(function(stream) {
+      localStream = stream;
+      muteStream(localStream, false);
+      if (call && call.peerConnection) {
+        stream.getAudioTracks().forEach(function(track) {
+          call.peerConnection.getSenders().forEach(function(sender) {
+            if (sender.track && sender.track.kind === 'audio') sender.replaceTrack(track);
+          });
+        });
+      }
+    });
+  }
   document.getElementById('ptt-btn').classList.add('active');
   document.getElementById('ptt-hint').textContent = 'En cours de diffusion…';
   document.getElementById('ptt-hint').style.color = 'var(--green)';
