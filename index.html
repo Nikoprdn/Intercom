@@ -657,7 +657,7 @@ function setupDataConn(c) {
     // Envoyer notre nom
     c.send({ type: 'hello', name: myName });
 
-    // Si client, initier l'appel audio
+    // Côté client : initier l'appel audio immédiatement
     if (!isHost) {
       getMic(function(stream) {
         localStream = stream;
@@ -665,13 +665,36 @@ function setupDataConn(c) {
         setupCall(call);
       });
     }
+
+    // Afficher l'interface connectée immédiatement de notre côté
+    // (peerName sera mis à jour quand on reçoit hello)
+    peerName = peerName || '…';
+    showConnected();
   });
 
   c.on('data', function(data) {
     if (data.type === 'hello') {
       peerName = data.name;
-      log(peerName + ' a rejoint', 'ok');
-      showConnected();
+      log(peerName + ' connecté', 'ok');
+      // Mettre à jour le nom affiché
+      var pn = document.getElementById('peer-name');
+      if (pn) pn.textContent = peerName;
+      var pa = document.getElementById('peer-avatar');
+      if (pa) pa.textContent = peerName.charAt(0);
+      // Mettre à jour le statut header
+      setStatus('CONNECTÉ — ' + peerName, 'online');
+      // Répondre avec notre nom si on est l'hôte
+      if (isHost) c.send({ type: 'hello_ack', name: myName });
+      renderParticipants();
+    }
+    if (data.type === 'hello_ack') {
+      peerName = data.name;
+      var pn = document.getElementById('peer-name');
+      if (pn) pn.textContent = peerName;
+      var pa = document.getElementById('peer-avatar');
+      if (pa) pa.textContent = peerName.charAt(0);
+      setStatus('CONNECTÉ — ' + peerName, 'online');
+      renderParticipants();
     }
     if (data.type === 'ptt_start') {
       setPeerSpeaking(true);
