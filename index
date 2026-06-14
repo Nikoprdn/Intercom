@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Intercom — Radio Monaco</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Share+Tech+Mono&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root {
+  --red:#E4032E; --bg:#0D1016; --panel:#12151C; --card:#181B26;
+  --border:#232730; --text:#E8EAF0; --muted:#5E6474; --muted2:#42465A;
+  --yellow:#F5C518; --orange:#FF6B35; --green:#27AE60;
+  --hdr:#C4001A;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow:hidden;}
+
+/* ── Header ── */
+.hdr{
+  background:var(--hdr);
+  height:64px;
+  display:flex;align-items:center;
+  padding:0 20px;gap:14px;
+  position:relative;z-index:10;
+  box-shadow:0 2px 12px rgba(0,0,0,.4);
+}
+.hdr-logo{
+  width:40px;height:40px;
+  background:#fff;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;
+  color:var(--hdr);letter-spacing:-.02em;flex-shrink:0;
+}
+.hdr-title{
+  font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;
+  letter-spacing:.2em;text-transform:uppercase;color:#fff;flex:1;
+}
+.hdr-status{
+  display:flex;align-items:center;gap:6px;
+  font-family:'Share Tech Mono',monospace;font-size:10px;
+  color:rgba(255,255,255,.6);letter-spacing:1px;
+}
+.hdr-dot{
+  width:8px;height:8px;border-radius:50%;background:#555;
+  transition:background .3s,box-shadow .3s;flex-shrink:0;
+}
+.hdr-dot.online{background:var(--green);box-shadow:0 0 8px var(--green);}
+.hdr-dot.calling{background:var(--yellow);animation:pulse-dot .6s ease-in-out infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── Main ── */
+.main{
+  height:calc(100vh - 64px);
+  display:flex;flex-direction:column;
+  padding:20px 16px 24px;
+  gap:16px;overflow-y:auto;
+}
+
+/* ── Setup card ── */
+.setup-card{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:20px;display:flex;flex-direction:column;gap:14px;
+}
+.card-label{
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--muted);
+  margin-bottom:2px;
+}
+.name-input{
+  width:100%;height:48px;background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-family:'Barlow Condensed',sans-serif;
+  font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  padding:0 16px;outline:none;transition:border-color .2s;
+  -webkit-appearance:none;
+}
+.name-input:focus{border-color:rgba(255,255,255,.3);}
+.name-input::placeholder{color:var(--muted2);}
+
+.room-row{display:flex;gap:8px;}
+.room-input{
+  flex:1;height:48px;background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;color:var(--yellow);font-family:'Share Tech Mono',monospace;
+  font-size:18px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  padding:0 16px;outline:none;transition:border-color .2s;
+  -webkit-appearance:none;
+}
+.room-input:focus{border-color:rgba(245,197,24,.3);}
+.room-input::placeholder{color:var(--muted2);}
+
+.btn{
+  height:48px;border-radius:8px;border:1px solid;
+  font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;
+  letter-spacing:.2em;text-transform:uppercase;cursor:pointer;
+  transition:background .15s,transform .1s;
+  -webkit-appearance:none;padding:0 20px;
+}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:rgba(228,3,46,.15);border-color:var(--red);color:var(--red);}
+.btn-primary:hover{background:rgba(228,3,46,.25);}
+.btn-primary.active{background:var(--red);color:#fff;}
+.btn-green{background:rgba(39,174,96,.12);border-color:var(--green);color:var(--green);}
+.btn-green:hover{background:rgba(39,174,96,.22);}
+.btn-muted{background:transparent;border-color:var(--border);color:var(--muted);}
+.btn-muted:hover{border-color:rgba(255,255,255,.3);color:var(--text);}
+
+.divider{
+  display:flex;align-items:center;gap:10px;
+  font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;
+  letter-spacing:.2em;color:var(--muted);text-transform:uppercase;
+}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── Room code display ── */
+.room-display{
+  background:var(--bg);border:1px solid var(--border);border-radius:10px;
+  padding:16px;text-align:center;
+}
+.room-code{
+  font-family:'Share Tech Mono',monospace;font-size:32px;font-weight:700;
+  color:var(--yellow);letter-spacing:.2em;display:block;
+  margin-bottom:4px;
+}
+.room-hint{
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;
+  color:var(--muted);letter-spacing:.1em;text-transform:uppercase;
+}
+.copy-btn{
+  margin-top:10px;background:transparent;border:1px solid var(--border);
+  color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:11px;
+  font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  padding:6px 16px;border-radius:6px;cursor:pointer;transition:all .2s;
+}
+.copy-btn:hover{border-color:var(--yellow);color:var(--yellow);}
+.copy-btn.copied{border-color:var(--green);color:var(--green);}
+
+/* ── Connected state ── */
+.connected-card{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:20px;display:flex;flex-direction:column;gap:16px;
+  animation:fadeIn .3s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.peer-info{
+  display:flex;align-items:center;gap:14px;
+  background:var(--bg);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;
+}
+.peer-avatar{
+  width:48px;height:48px;border-radius:50%;
+  background:rgba(228,3,46,.15);border:2px solid var(--red);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;
+  color:var(--red);flex-shrink:0;text-transform:uppercase;
+  transition:all .2s;
+}
+.peer-avatar.speaking{
+  border-color:var(--green);color:var(--green);
+  background:rgba(39,174,96,.15);
+  box-shadow:0 0 16px rgba(39,174,96,.3);
+  animation:speaking-pulse 1s ease-in-out infinite;
+}
+@keyframes speaking-pulse{0%,100%{box-shadow:0 0 10px rgba(39,174,96,.3)}50%{box-shadow:0 0 24px rgba(39,174,96,.5)}}
+.peer-name{
+  font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--text);
+}
+.peer-state{
+  font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);
+  letter-spacing:1px;margin-top:2px;
+}
+.peer-state.speaking{color:var(--green);}
+
+/* ── VU mètre ── */
+.vu-wrap{
+  display:flex;gap:3px;height:32px;align-items:flex-end;
+}
+.vu-bar{
+  flex:1;background:var(--border);border-radius:2px;
+  transition:height .05s ease,background .05s;
+  min-height:3px;
+}
+
+/* ── Push to Talk ── */
+.ptt-section{
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  padding:8px 0;
+}
+.ptt-btn{
+  width:160px;height:160px;border-radius:50%;
+  background:rgba(228,3,46,.1);border:3px solid var(--red);
+  color:var(--red);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  transition:all .1s;
+  -webkit-user-select:none;user-select:none;
+  touch-action:none;
+  box-shadow:0 0 0 0 rgba(228,3,46,0);
+}
+.ptt-btn:active,.ptt-btn.active{
+  background:var(--red);color:#fff;
+  box-shadow:0 0 0 20px rgba(228,3,46,.1),0 0 40px rgba(228,3,46,.3);
+  transform:scale(.96);
+}
+.ptt-icon{font-size:48px;line-height:1;pointer-events:none;}
+.ptt-label{
+  font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;
+  letter-spacing:.2em;text-transform:uppercase;pointer-events:none;
+}
+.ptt-hint{
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+}
+
+/* ── Log ── */
+.log-card{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:0;overflow:hidden;flex:1;display:flex;flex-direction:column;
+  min-height:80px;max-height:200px;
+}
+.log-header{
+  padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--border);
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--muted);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.log-body{
+  flex:1;overflow-y:auto;padding:10px 14px;
+  display:flex;flex-direction:column;gap:4px;
+}
+.log-entry{
+  font-family:'Share Tech Mono',monospace;font-size:10px;
+  color:var(--muted);letter-spacing:.5px;
+  display:flex;gap:8px;
+}
+.log-entry.info{color:rgba(232,234,240,.5);}
+.log-entry.ok{color:var(--green);}
+.log-entry.err{color:var(--red);}
+.log-time{color:var(--muted2);flex-shrink:0;}
+
+/* ── Disconnect ── */
+.dc-btn{
+  width:100%;height:44px;background:transparent;
+  border:1px solid var(--border);border-radius:8px;
+  color:var(--muted);font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  cursor:pointer;transition:all .2s;
+}
+.dc-btn:hover{border-color:var(--red);color:var(--red);}
+
+/* ── Sections ── */
+#section-setup{display:flex;flex-direction:column;gap:16px;}
+#section-connected{display:none;flex-direction:column;gap:16px;}
+
+/* ── Responsive desktop ── */
+@media(min-width:600px){
+  .main{padding:28px 32px 40px;max-width:480px;margin:0 auto;}
+  .ptt-btn{width:200px;height:200px;}
+  .ptt-icon{font-size:64px;}
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-logo">M</div>
+  <div class="hdr-title">Intercom</div>
+  <div class="hdr-status">
+    <div class="hdr-dot" id="hdr-dot"></div>
+    <span id="hdr-status-txt">HORS LIGNE</span>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- ── SECTION SETUP ── -->
+  <div id="section-setup">
+
+    <div class="setup-card">
+      <div>
+        <div class="card-label">Votre nom</div>
+        <input class="name-input" id="my-name" type="text" placeholder="Ex : STUDIO, RÉGIE…" maxlength="20" autocomplete="off">
+      </div>
+
+      <div class="divider">Créer ou rejoindre</div>
+
+      <!-- Créer une room -->
+      <button class="btn btn-primary" id="btn-create" onclick="createRoom()">
+        &#43; Créer une room
+      </button>
+
+      <div class="divider">ou</div>
+
+      <!-- Rejoindre avec un code -->
+      <div>
+        <div class="card-label">Code de la room</div>
+        <div class="room-row">
+          <input class="room-input" id="room-code-input" type="text" placeholder="ABC-123" maxlength="10" autocomplete="off" autocapitalize="characters"
+            onkeydown="if(event.key==='Enter')joinRoom()">
+          <button class="btn btn-green" onclick="joinRoom()">Rejoindre</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Room créée - afficher le code -->
+    <div id="room-created" style="display:none;">
+      <div class="room-display">
+        <span class="room-code" id="room-code-display">---</span>
+        <span class="room-hint">Partagez ce code pour que quelqu'un vous rejoigne</span>
+        <br>
+        <button class="copy-btn" id="copy-btn" onclick="copyCode()">&#128203; Copier le code</button>
+      </div>
+      <div style="margin-top:12px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;">
+        En attente de connexion…
+      </div>
+    </div>
+
+    <!-- Log setup -->
+    <div class="log-card">
+      <div class="log-header">
+        <span>Journal</span>
+        <span id="peer-id-display" style="color:var(--muted2);font-size:9px;"></span>
+      </div>
+      <div class="log-body" id="log-setup"></div>
+    </div>
+
+  </div>
+
+  <!-- ── SECTION CONNECTED ── -->
+  <div id="section-connected">
+
+    <!-- Pair connecté -->
+    <div class="connected-card">
+      <div class="peer-info">
+        <div class="peer-avatar" id="peer-avatar">?</div>
+        <div>
+          <div class="peer-name" id="peer-name">—</div>
+          <div class="peer-state" id="peer-state">CONNECTÉ</div>
+        </div>
+        <!-- VU mètre distant -->
+        <div class="vu-wrap" id="vu-remote" style="margin-left:auto;"></div>
+      </div>
+
+      <!-- Push to Talk -->
+      <div class="ptt-section">
+        <div class="ptt-btn" id="ptt-btn"
+          ontouchstart="pttStart(event)" ontouchend="pttEnd(event)"
+          onmousedown="pttStart(event)" onmouseup="pttEnd(event)"
+          onmouseleave="pttEnd(event)">
+          <div class="ptt-icon">&#127908;</div>
+          <div class="ptt-label">Push to Talk</div>
+        </div>
+        <div class="ptt-hint" id="ptt-hint">Maintenez pour parler</div>
+      </div>
+
+      <!-- VU mètre local -->
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Votre micro</div>
+        <div class="vu-wrap" id="vu-local"></div>
+      </div>
+
+      <button class="dc-btn" onclick="disconnect()">&#9632; Raccrocher</button>
+    </div>
+
+    <!-- Log connecté -->
+    <div class="log-card">
+      <div class="log-header">Journal</div>
+      <div class="log-body" id="log-conn"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<audio id="remote-audio" autoplay playsinline style="display:none;"></audio>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────
+var PEER_CONFIG = {
+  host: '0.peerjs.com', port: 443, secure: true,
+  config: { iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ]}
+};
+
+// ── State ─────────────────────────────────────────────────────────────────
+var peer = null;
+var conn = null;      // DataConnection (signaling custom)
+var call = null;      // MediaConnection
+var localStream = null;
+var isHost = false;
+var myName = '';
+var peerName = '';
+var pttActive = false;
+var audioCtx = null;
+var localAnalyser = null;
+var remoteAnalyser = null;
+var vuRaf = null;
+var myRoomCode = '';
+
+// ── Logs ──────────────────────────────────────────────────────────────────
+function log(msg, type, targetId) {
+  type = type || 'info';
+  var id = targetId || (isConnected() ? 'log-conn' : 'log-setup');
+  var el = document.getElementById(id);
+  if (!el) return;
+  var now = new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var div = document.createElement('div');
+  div.className = 'log-entry ' + type;
+  div.innerHTML = '<span class="log-time">' + now + '</span><span>' + msg + '</span>';
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function isConnected() { return !!conn && conn.open; }
+
+// ── Header status ─────────────────────────────────────────────────────────
+function setStatus(txt, state) {
+  var dot = document.getElementById('hdr-dot');
+  var stxt = document.getElementById('hdr-status-txt');
+  dot.className = 'hdr-dot' + (state ? ' ' + state : '');
+  stxt.textContent = txt;
+}
+
+// ── Générer un code room ──────────────────────────────────────────────────
+function genCode() {
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var code = '';
+  for (var i = 0; i < 6; i++) {
+    if (i === 3) code += '-';
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+// ── Initialiser PeerJS ────────────────────────────────────────────────────
+function initPeer(peerId) {
+  setStatus('CONNEXION…', 'calling');
+  log('Connexion au serveur de signaling…');
+  peer = new Peer(peerId, PEER_CONFIG);
+
+  peer.on('open', function(id) {
+    document.getElementById('peer-id-display').textContent = 'ID: ' + id;
+    log('Connecté — ID: ' + id, 'ok');
+    setStatus('EN LIGNE', 'online');
+  });
+
+  peer.on('connection', function(c) {
+    // Quelqu'un rejoint notre room
+    conn = c;
+    setupDataConn(conn);
+    log('Connexion entrante de ' + c.peer, 'ok');
+  });
+
+  peer.on('call', function(c) {
+    // Recevoir l'appel audio
+    call = c;
+    log('Appel audio entrant…', 'ok');
+    getMic(function(stream) {
+      localStream = stream;
+      call.answer(stream);
+      setupCall(call);
+    });
+  });
+
+  peer.on('error', function(err) {
+    log('Erreur: ' + err.message, 'err');
+    if (err.type === 'peer-unavailable') {
+      log('Code introuvable — vérifiez et réessayez', 'err');
+      setStatus('ERREUR', '');
+    }
+  });
+
+  peer.on('disconnected', function() {
+    log('Déconnecté du serveur', 'err');
+    setStatus('DÉCONNECTÉ', '');
+  });
+}
+
+// ── Créer une room ────────────────────────────────────────────────────────
+function createRoom() {
+  myName = (document.getElementById('my-name').value.trim() || 'STUDIO').toUpperCase();
+  myRoomCode = genCode();
+  isHost = true;
+
+  // L'ID PeerJS de l'hôte = le code de room (sans le tiret)
+  var peerId = 'rm-' + myRoomCode.replace('-', '');
+  initPeer(peerId);
+
+  document.getElementById('room-created').style.display = 'block';
+  document.getElementById('room-code-display').textContent = myRoomCode;
+  document.getElementById('btn-create').style.display = 'none';
+  log('Room créée: ' + myRoomCode, 'ok', 'log-setup');
+}
+
+// ── Rejoindre une room ────────────────────────────────────────────────────
+function joinRoom() {
+  var code = document.getElementById('room-code-input').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if (code.length < 5) { log('Code invalide', 'err'); return; }
+  // Reformater avec tiret
+  var formatted = code.slice(0,3) + '-' + code.slice(3);
+  myName = (document.getElementById('my-name').value.trim() || 'RÉGIE').toUpperCase();
+  isHost = false;
+
+  // Notre propre ID est aléatoire
+  initPeer('client-' + Date.now());
+
+  // Attendre que le peer soit prêt puis connecter
+  peer.on('open', function() {
+    var hostId = 'rm-' + code;
+    log('Connexion à la room ' + formatted + '…');
+    setStatus('CONNEXION…', 'calling');
+
+    conn = peer.connect(hostId, { reliable: true, metadata: { name: myName } });
+    setupDataConn(conn);
+  });
+}
+
+// ── DataConnection (échange des noms + signaux PTT) ───────────────────────
+function setupDataConn(c) {
+  c.on('open', function() {
+    log('Canal data ouvert', 'ok');
+    // Envoyer notre nom
+    c.send({ type: 'hello', name: myName });
+
+    // Si client, initier l'appel audio
+    if (!isHost) {
+      getMic(function(stream) {
+        localStream = stream;
+        call = peer.call(c.peer, stream);
+        setupCall(call);
+      });
+    }
+  });
+
+  c.on('data', function(data) {
+    if (data.type === 'hello') {
+      peerName = data.name;
+      log(peerName + ' a rejoint', 'ok');
+      showConnected();
+    }
+    if (data.type === 'ptt_start') {
+      setPeerSpeaking(true);
+    }
+    if (data.type === 'ptt_end') {
+      setPeerSpeaking(false);
+    }
+  });
+
+  c.on('close', function() {
+    log('Connexion fermée', 'err');
+    onDisconnect();
+  });
+
+  c.on('error', function(e) { log('Erreur data: ' + e, 'err'); });
+}
+
+// ── MediaConnection ───────────────────────────────────────────────────────
+function setupCall(c) {
+  c.on('stream', function(remoteStream) {
+    log('Audio reçu', 'ok');
+    var audio = document.getElementById('remote-audio');
+    audio.srcObject = remoteStream;
+    audio.play().catch(function(){});
+    setupRemoteVU(remoteStream);
+  });
+  c.on('close', function() { log('Appel terminé', 'err'); });
+  c.on('error', function(e) { log('Erreur appel: ' + e, 'err'); });
+}
+
+// ── Micro ─────────────────────────────────────────────────────────────────
+function getMic(cb) {
+  navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 }, video: false })
+    .then(function(stream) {
+      log('Micro activé', 'ok');
+      muteStream(stream, true); // Commencer muet (PTT)
+      setupLocalVU(stream);
+      cb(stream);
+    })
+    .catch(function(e) { log('Micro refusé: ' + e.message, 'err'); });
+}
+
+function muteStream(stream, muted) {
+  if (!stream) return;
+  stream.getAudioTracks().forEach(function(t) { t.enabled = !muted; });
+}
+
+// ── VU mètres ─────────────────────────────────────────────────────────────
+var VU_BARS = 16;
+
+function makeVU(containerId) {
+  var c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = '';
+  for (var i = 0; i < VU_BARS; i++) {
+    var b = document.createElement('div');
+    b.className = 'vu-bar';
+    c.appendChild(b);
+  }
+}
+
+function setupLocalVU(stream) {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  var src = audioCtx.createMediaStreamSource(stream);
+  localAnalyser = audioCtx.createAnalyser();
+  localAnalyser.fftSize = 256;
+  src.connect(localAnalyser);
+  makeVU('vu-local');
+  if (!vuRaf) vuLoop();
+}
+
+function setupRemoteVU(stream) {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  var src = audioCtx.createMediaStreamSource(stream);
+  remoteAnalyser = audioCtx.createAnalyser();
+  remoteAnalyser.fftSize = 256;
+  src.connect(remoteAnalyser);
+  makeVU('vu-remote');
+}
+
+function vuLoop() {
+  vuRaf = requestAnimationFrame(vuLoop);
+  paintVU('vu-local', localAnalyser, pttActive);
+  paintVU('vu-remote', remoteAnalyser, false);
+}
+
+function paintVU(containerId, analyser, isActive) {
+  if (!analyser) return;
+  var c = document.getElementById(containerId);
+  if (!c) return;
+  var bars = c.querySelectorAll('.vu-bar');
+  if (!bars.length) return;
+  var data = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(data);
+  var avg = 0;
+  for (var i = 0; i < data.length; i++) avg += data[i];
+  avg = avg / data.length;
+  var level = avg / 128;
+  var active = Math.round(level * VU_BARS);
+  bars.forEach(function(b, i) {
+    var pct = (i < active) ? Math.max(20, level * 100) : 3;
+    b.style.height = pct + '%';
+    b.style.background = isActive
+      ? (i < active * .6 ? 'var(--green)' : i < active * .85 ? 'var(--yellow)' : 'var(--red)')
+      : (i < active ? 'rgba(255,255,255,.2)' : 'var(--border)');
+  });
+}
+
+// ── Push to Talk ──────────────────────────────────────────────────────────
+function pttStart(e) {
+  e.preventDefault();
+  if (!conn || !conn.open) return;
+  if (pttActive) return;
+  pttActive = true;
+  muteStream(localStream, false);
+  document.getElementById('ptt-btn').classList.add('active');
+  document.getElementById('ptt-hint').textContent = 'En cours de diffusion…';
+  document.getElementById('ptt-hint').style.color = 'var(--green)';
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  conn.send({ type: 'ptt_start' });
+}
+
+function pttEnd(e) {
+  if (e) e.preventDefault();
+  if (!pttActive) return;
+  pttActive = false;
+  muteStream(localStream, true);
+  document.getElementById('ptt-btn').classList.remove('active');
+  document.getElementById('ptt-hint').textContent = 'Maintenez pour parler';
+  document.getElementById('ptt-hint').style.color = '';
+  if (conn && conn.open) conn.send({ type: 'ptt_end' });
+}
+
+// ── Peer speaking indicator ───────────────────────────────────────────────
+function setPeerSpeaking(speaking) {
+  var avatar = document.getElementById('peer-avatar');
+  var state = document.getElementById('peer-state');
+  if (avatar) avatar.className = 'peer-avatar' + (speaking ? ' speaking' : '');
+  if (state) { state.textContent = speaking ? 'PARLE…' : 'CONNECTÉ'; state.className = 'peer-state' + (speaking ? ' speaking' : ''); }
+}
+
+// ── Afficher la section connectée ─────────────────────────────────────────
+function showConnected() {
+  document.getElementById('section-setup').style.display = 'none';
+  var sc = document.getElementById('section-connected');
+  sc.style.display = 'flex';
+  document.getElementById('peer-name').textContent = peerName;
+  document.getElementById('peer-avatar').textContent = peerName.charAt(0);
+  setStatus('CONNECTÉ — ' + peerName, 'online');
+  log('Intercom actif avec ' + peerName, 'ok', 'log-conn');
+}
+
+// ── Déconnexion ───────────────────────────────────────────────────────────
+function disconnect() {
+  pttEnd();
+  if (call) { try { call.close(); } catch(e){} call = null; }
+  if (conn) { try { conn.close(); } catch(e){} conn = null; }
+  if (localStream) { localStream.getTracks().forEach(function(t){t.stop();}); localStream = null; }
+  if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
+  if (vuRaf) { cancelAnimationFrame(vuRaf); vuRaf = null; }
+  onDisconnect();
+}
+
+function onDisconnect() {
+  document.getElementById('section-setup').style.display = 'flex';
+  document.getElementById('section-connected').style.display = 'none';
+  document.getElementById('room-created').style.display = 'none';
+  document.getElementById('btn-create').style.display = '';
+  document.getElementById('room-code-input').value = '';
+  setStatus('HORS LIGNE', '');
+  log('Déconnecté', 'err', 'log-setup');
+  peerName = '';
+}
+
+// ── Copier le code ────────────────────────────────────────────────────────
+function copyCode() {
+  var code = document.getElementById('room-code-display').textContent;
+  navigator.clipboard.writeText(code).then(function() {
+    var btn = document.getElementById('copy-btn');
+    btn.textContent = '✓ Copié !';
+    btn.className = 'copy-btn copied';
+    setTimeout(function() {
+      btn.textContent = '⧉ Copier le code';
+      btn.className = 'copy-btn';
+    }, 2000);
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+log('Prêt — Entrez votre nom et créez ou rejoignez une room');
+</script>
+</body>
+</html>
