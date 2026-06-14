@@ -477,10 +477,49 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 // ── Config ────────────────────────────────────────────────────────────────
 var PEER_CONFIG = {
   host: '0.peerjs.com', port: 443, secure: true,
-  config: { iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-  ]}
+  config: {
+    iceTransportPolicy: 'all',
+    iceServers: [
+      // STUN
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
+      // TURN via Metered.ca (relais quand STUN échoue)
+      {
+        urls: 'turn:a.relay.metered.ca:80',
+        username: 'free',
+        credential: 'free'
+      },
+      {
+        urls: 'turn:a.relay.metered.ca:80?transport=tcp',
+        username: 'free',
+        credential: 'free'
+      },
+      {
+        urls: 'turn:a.relay.metered.ca:443',
+        username: 'free',
+        credential: 'free'
+      },
+      {
+        urls: 'turns:a.relay.metered.ca:443?transport=tcp',
+        username: 'free',
+        credential: 'free'
+      },
+      // TURN Cloudflare (fallback)
+      {
+        urls: 'turn:turn.cloudflare.com:3478?transport=udp',
+        username: 'free',
+        credential: 'free'
+      },
+      {
+        urls: 'turn:turn.cloudflare.com:3478?transport=tcp',
+        username: 'free',
+        credential: 'free'
+      },
+    ]
+  }
 };
 
 // ── State ─────────────────────────────────────────────────────────────────
