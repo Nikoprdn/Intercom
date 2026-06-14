@@ -185,22 +185,26 @@ async function getPeerConfig(){
   try{
     var r=await fetch(TURN_URL,{signal:AbortSignal.timeout(6000)});
     var d=await r.json();
-    console.log('[TURN] Raw:', JSON.stringify(d).slice(0,400));
-    // Cloudflare Calls renvoie { iceServers: [...] }
-    // Chaque entrée a { urls: "turn:...", username: "...", credential: "..." }
-    var ice=null;
-    if(Array.isArray(d.iceServers)) ice=d.iceServers;
-    else if(d.v && Array.isArray(d.v.iceServers)) ice=d.v.iceServers;
-    // Convertir urls string → tableau si nécessaire (PeerJS l'exige)
-    if(ice){
-      ice=ice.map(function(s){
-        return{
-          urls: Array.isArray(s.urls)?s.urls:[s.urls],
-          username: s.username||undefined,
-          credential: s.credential||undefined
-        };
+    // Cloudflare renvoie { iceServers: { urls: "...", username: "...", credential: "..." } }
+    // C'est un OBJET unique, pas un tableau — on le convertit
+    var raw=d.iceServers;
+    var ice=[];
+    if(raw){
+      // Si c'est un tableau, on l'utilise tel quel
+      var arr=Array.isArray(raw)?raw:[raw];
+      arr.forEach(function(s){
+        // urls peut être une string avec des virgules ou un tableau
+        var urls=s.urls;
+        if(typeof urls==='string') urls=urls.split(',').map(function(u){return u.trim();});
+        if(!Array.isArray(urls)) urls=[urls];
+        var entry={urls:urls};
+        if(s.username)entry.username=s.username;
+        if(s.credential)entry.credential=s.credential;
+        ice.push(entry);
       });
-      log('TURN OK — '+ice.length+' serveur(s)','ok');
+    }
+    if(ice.length>0){
+      log('TURN Cloudflare OK — '+ice.length+' entrée(s)','ok');
       return{host:'0.peerjs.com',port:443,secure:true,config:{iceTransportPolicy:'all',iceServers:ice}};
     }
     log('TURN: réponse vide','err');
