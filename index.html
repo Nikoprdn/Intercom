@@ -144,6 +144,30 @@ var peer=null,conn=null,call=null,localStream=null;
 var myName='',peerName='',isHost=false,pttActive=false;
 var audioCtx=null,localAnalyser=null,remoteAnalyser=null,vuRaf=null;
 
+function beep(freq,dur,vol){
+  try{
+    var ctx=getACtx();
+    var o=ctx.createOscillator();
+    var g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.frequency.value=freq||880;
+    g.gain.setValueAtTime(vol||0.3,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+(dur||0.15));
+    o.start(ctx.currentTime);
+    o.stop(ctx.currentTime+(dur||0.15));
+  }catch(e){}
+}
+function bipConnect(){
+  // Deux bips montants : connexion
+  beep(660,0.1,0.25);
+  setTimeout(function(){beep(880,0.12,0.3);},120);
+}
+function bipDisconnect(){
+  // Deux bips descendants : déconnexion
+  beep(880,0.1,0.2);
+  setTimeout(function(){beep(560,0.12,0.2);},120);
+}
+
 function log(msg,type){
   var id=document.getElementById('section-connected').style.display!=='none'?'log-b':'log-a';
   var el=document.getElementById(id);if(!el)return;
@@ -240,11 +264,11 @@ function bindConn(c){
     showConnected();
   });
   c.on('data',function(d){
-    if(d.type==='hello'){peerName=d.name;updatePeerUI();log(peerName+' connecté','ok');renderParticipants();}
+    if(d.type==='hello'){peerName=d.name;updatePeerUI();log(peerName+' connecté','ok');renderParticipants();bipConnect();}
     if(d.type==='ptt_on')setPeerSpeaking(true);
     if(d.type==='ptt_off')setPeerSpeaking(false);
   });
-  c.on('close',function(){log('Connexion fermée','err');doHangUp();});
+  c.on('close',function(){log('Connexion fermée','err');bipDisconnect();doHangUp();});
   c.on('error',function(e){log('Erreur data: '+e,'err');});
 }
 function bindCall(c){
